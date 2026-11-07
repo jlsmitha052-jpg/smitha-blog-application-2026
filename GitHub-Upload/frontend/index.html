@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Blog Application</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header>
+        <h1>My Blog Application</h1>
+        <p>Share your thoughts with the world!</p>
+    </header>
+
+    <main>
+        <section class="form-section">
+            <h2>Create New Blog</h2>
+
+            <form id="blogForm">
+                <label for="title">Blog Title</label>
+                <input type="text" id="title" placeholder="Enter blog title" required>
+
+                <label for="author">Author Name</label>
+                <input type="text" id="author" placeholder="Enter your name" required>
+
+                <label for="content">Blog Content</label>
+                <textarea id="content" placeholder="Write your blog..." required></textarea>
+
+                <button type="submit">Publish Blog</button>
+            </form>
+
+            <p id="message"></p>
+        </section>
+
+        <section class="blogs-section">
+            <div class="section-heading">
+                <h2>All Blogs</h2>
+                <button type="button" id="refreshBtn">Refresh Blogs</button>
+            </div>
+
+            <div id="blogList">Loading blogs...</div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2026 My Blog Application</p>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
