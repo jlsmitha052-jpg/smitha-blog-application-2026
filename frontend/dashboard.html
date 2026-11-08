@@ -1,0 +1,129 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Dashboard</title>
+<style>
+body {
+    font-family: Arial;
+    background: #f4f6f9;
+    padding: 20px;
+}
+.dashboard {
+    max-width: 850px;
+    margin: auto;
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+}
+.stats, .blog-card {
+    background: #eef3ff;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 8px;
+}
+button, a {
+    padding: 10px;
+    margin: 5px;
+    cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+<h1>My Dashboard</h1>
+<h2 id="welcome">Welcome!</h2>
+<p>Manage your blog application here.</p>
+
+<div class="stats">
+<h3>My Blog Activity</h3>
+<p>Total Blogs: <strong id="blogCount">Loading...</strong></p>
+</div>
+
+<a href="index.html">Home</a>
+<a href="index.html">Create Blog</a>
+<button id="refreshBtn">Refresh Blogs</button>
+<button id="logoutBtn">Logout</button>
+
+<h2>All Blogs</h2>
+<div id="blogList">Loading blogs...</div>
+<p id="message"></p>
+</div>
+
+<script>
+const welcome = document.getElementById("welcome");
+const blogList = document.getElementById("blogList");
+const blogCount = document.getElementById("blogCount");
+
+try {
+    const savedUser = sessionStorage.getItem("blogUser");
+
+    if (savedUser) {
+        const user = JSON.parse(savedUser);
+        welcome.textContent = "Welcome, " + user.name + "!";
+    } else {
+        welcome.textContent = "Welcome, Guest!";
+    }
+} catch (error) {
+    welcome.textContent = "Welcome, Guest!";
+}
+
+async function loadBlogs() {
+    blogList.textContent = "Loading blogs...";
+    blogCount.textContent = "Loading...";
+
+    try {
+        const response = await fetch("/api/blogs");
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Unable to load blogs");
+        }
+
+        const blogs = data.blogs || [];
+        blogCount.textContent = blogs.length;
+        blogList.innerHTML = "";
+
+        if (blogs.length === 0) {
+            blogList.textContent = "No blogs available.";
+            return;
+        }
+
+        blogs.forEach(blog => {
+            const card = document.createElement("div");
+            card.className = "blog-card";
+
+            const title = document.createElement("h3");
+            title.textContent = blog.title || "Untitled";
+
+            const content = document.createElement("p");
+            content.textContent = blog.content || "";
+
+            const author = document.createElement("p");
+            author.textContent = "Author: " + (blog.author || "Anonymous");
+
+            card.append(title, content, author);
+            blogList.appendChild(card);
+        });
+
+    } catch (error) {
+        blogCount.textContent = "Error";
+        blogList.textContent = error.message;
+    }
+}
+
+document.getElementById("refreshBtn").addEventListener("click", loadBlogs);
+
+document.getElementById("logoutBtn").addEventListener("click", function() {
+    sessionStorage.removeItem("blogUser");
+    window.location.href = "login.html";
+});
+
+loadBlogs();
+</script>
+
+</body>
+</html>
