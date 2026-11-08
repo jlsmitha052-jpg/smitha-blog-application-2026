@@ -1,10 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Blog Application</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
@@ -14,39 +15,83 @@
     </header>
 
     <main>
-        <section class="form-section">
+
+        <section>
             <h2>Create New Blog</h2>
 
             <form id="blogForm">
+
                 <label for="title">Blog Title</label>
-                <input type="text" id="title" placeholder="Enter blog title" required>
+                <input type="text" id="title" name="title"
+                       placeholder="Enter blog title" required>
 
                 <label for="author">Author Name</label>
-                <input type="text" id="author" placeholder="Enter your name" required>
+                <input type="text" id="author" name="author"
+                       placeholder="Enter author name" required>
+
+                <label for="category">Blog Category</label>
+                <select id="category" name="category" required>
+                    <option value="">Select Category</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Education">Education</option>
+                    <option value="Health">Health</option>
+                    <option value="Lifestyle">Lifestyle</option>
+                    <option value="Travel">Travel</option>
+                    <option value="Other">Other</option>
+                </select>
 
                 <label for="content">Blog Content</label>
-                <textarea id="content" placeholder="Write your blog..." required></textarea>
+                <textarea id="content" name="content"
+                          placeholder="Write your blog here..."
+                          required></textarea>
 
                 <button type="submit">Publish Blog</button>
+
             </form>
 
             <p id="message"></p>
         </section>
 
-        <section class="blogs-section">
-            <div class="section-heading">
-                <h2>All Blogs</h2>
-                <button type="button" id="refreshBtn">Refresh Blogs</button>
+        <section>
+            <h2>All Blogs</h2>
+
+            <div>
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Search blogs by title or author..."
+                >
             </div>
 
-            <div id="blogList">Loading blogs...</div>
+            <div>
+                <select id="categoryFilter">
+                    <option value="">All Categories</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Education">Education</option>
+                    <option value="Health">Health</option>
+                    <option value="Lifestyle">Lifestyle</option>
+                    <option value="Travel">Travel</option>
+                    <option value="Other">Other</option>
+                </select>
+
+                <button type="button" id="refreshBtn">
+                    Refresh Blogs
+                </button>
+            </div>
+
+            <div id="blogList">
+                Loading blogs...
+            </div>
+
         </section>
+
     </main>
 
     <footer>
         <p>© 2026 My Blog Application</p>
     </footer>
 
-    <script src="js/script.js"></script>
+    <script src="/js/script.js"></script>
+
 </body>
 </html>
