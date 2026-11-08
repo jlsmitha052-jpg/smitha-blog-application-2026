@@ -1,130 +1,82 @@
-# Blog Application
+# Blog Application – Full Stack Web Development
 
-A Full Stack Blog Application developed as part of the **CODOMAX Virtual Internship 2026 – Full Stack Web Development**.
-
-## About the Project
-
-The Blog Application allows users to create, view, edit, and delete blog posts. It uses MongoDB to store blog data permanently and Node.js with Express.js to handle backend operations.
+A full-stack Blog Application developed as part of the **Codomax Virtual Internship 2026**.
 
 ## Features
 
-- User Registration
-- User Login
-- Create Blog Posts
-- View All Blogs
-- View Individual Blog Details
-- Edit Existing Blogs
-- Delete Blog Posts
-- MongoDB Database Integration
-- Password Hashing using bcryptjs
-- Responsive User Interface
+- Create new blog posts
+- View all published blogs
+- View individual blog details
+- Edit existing blogs
+- Delete blogs
+- Search blogs by title or author
+- Filter blogs by category
+- User registration and login
+- MongoDB database integration
+- Responsive and user-friendly interface
 
 ## Technologies Used
 
-**Frontend**
-- HTML5
-- CSS3
-- JavaScript
+**Frontend:** HTML, CSS, JavaScript
 
-**Backend**
-- Node.js
-- Express.js
-- REST API
+**Backend:** Node.js, Express.js
 
-**Database**
-- MongoDB
-- Mongoose
+**Database:** MongoDB, Mongoose
 
-**Security**
-- bcryptjs for password hashing
+**Authentication:** bcryptjs
 
-## Project Structure
+## Blog Categories
 
-```text
-GitHub-Upload/
-│
-├── backend/
-│   ├── server.js
-│   ├── package.json
-│   └── package-lock.json
-│
-└── frontend/
-    ├── index.html
-    ├── login.html
-    ├── register.html
-    ├── dashboard.html
-    ├── blog-details.html
-    ├── css/
-    │   └── style.css
-    └── js/
-        └── script.js
-```
+- Technology
+- Education
+- Health
+- Lifestyle
+- Travel
+- Other
 
-## Installation and Setup
+## CRUD Operations
 
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/jlsmitha052-jpg/smitha-blog-application-2026.git
-```
-
-### 2. Open Backend Folder
-
-```bash
-cd smitha-blog-application-2026/GitHub-Upload/backend
-```
-
-### 3. Install Dependencies
-
-```bash
-npm install
-```
-
-### 4. Start MongoDB
-
-Make sure MongoDB is installed and running.
-
-### 5. Start the Application
-
-```bash
-npm start
-```
-
-### 6. Open in Browser
-
-```text
-http://localhost:5000
-```
+- Create – Add new blog posts
+- Read – Display all blogs and individual details
+- Update – Edit existing blog posts
+- Delete – Remove blog posts
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
+| Method | Endpoint | Purpose |
 |---|---|---|
-| GET | /api/health | Check server |
-| POST | /api/register | Register user |
-| POST | /api/login | Login user |
-| POST | /api/blogs | Create blog |
-| GET | /api/blogs | Get all blogs |
-| GET | /api/blogs/:id | Get individual blog |
-| PUT | /api/blogs/:id | Update blog |
-| DELETE | /api/blogs/:id | Delete blog |
+| POST | `/api/register` | Register user |
+| POST | `/api/login` | Login user |
+| POST | `/api/blogs` | Create blog |
+| GET | `/api/blogs` | Get all blogs |
+| GET | `/api/blogs/:id` | Get one blog |
+| PUT | `/api/blogs/:id` | Update blog |
+| DELETE | `/api/blogs/:id` | Delete blog |
 
-## Database
+Search and category filters are supported through the GET `/api/blogs` endpoint.
 
-MongoDB is used to store user information and blog posts.
+## How to Run the Project
+
+1. Install Node.js and MongoDB.
+2. Open the backend folder in the terminal.
+3. Install dependencies:
+
+   `npm install`
+
+4. Start the server:
+
+   `npm start`
+
+5. Open `http://localhost:5000/index.html` in your browser.
 
 ## Internship
 
-**Program:** CODOMAX Virtual Internship 2026
+**Program:** Codomax Virtual Internship 2026
 
 **Domain:** Full Stack Web Development
 
+**Module:** CRUD Operations
+
 ## Author
 
-**Smitha**
-
-Computer Science and Engineering Student
-
-## Acknowledgement
-
-Thanks to Codomax Digital Solutions for providing the opportunity to learn and develop this Full Stack Blog Application.
+Developed as an internship project by Smitha.
