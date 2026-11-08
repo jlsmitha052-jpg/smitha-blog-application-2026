@@ -1,7 +1,9 @@
-
+﻿
 const API_URL = "/api/blogs";
 
 document.addEventListener("DOMContentLoaded", function () {
+    const token = sessionStorage.getItem("blogToken");
+
     const blogForm = document.getElementById("blogForm");
     const blogList = document.getElementById("blogList");
     const message = document.getElementById("message");
@@ -9,21 +11,40 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("searchInput");
     const categoryFilter = document.getElementById("categoryFilter");
 
+    // Require login before creating, editing or deleting blogs
+    if (!token) {
+        alert("Please login first!");
+        window.location.href = "login.html";
+        return;
+    }
+
+    const authHeaders = {
+        "Authorization": "Bearer " + token
+    };
+
     async function loadBlogs() {
         blogList.textContent = "Loading blogs...";
 
         try {
             const params = new URLSearchParams();
 
-            if (searchInput.value.trim()) {
+            if (searchInput && searchInput.value.trim()) {
                 params.append("search", searchInput.value.trim());
             }
 
-            if (categoryFilter.value) {
+            if (categoryFilter && categoryFilter.value) {
                 params.append("category", categoryFilter.value);
             }
 
-            const response = await fetch(API_URL + "?" + params.toString());
+            // Fetch only logged-in user's blogs
+            const response = await fetch(
+                "/api/my-blogs?" + params.toString(),
+                {
+                    method: "GET",
+                    headers: authHeaders
+                }
+            );
+
             const data = await response.json();
 
             if (!response.ok || !data.success) {
@@ -33,7 +54,7 @@ document.addEventListener("DOMContentLoaded", function () {
             blogList.innerHTML = "";
 
             if (!data.blogs || data.blogs.length === 0) {
-                blogList.textContent = "No blogs found.";
+                blogList.textContent = "You have not created any blogs yet.";
                 return;
             }
 
@@ -45,20 +66,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 title.textContent = blog.title;
 
                 const content = document.createElement("p");
-                content.textContent = blog.content;
+                content.textContent = blog.content || "";
 
                 const author = document.createElement("p");
                 author.textContent = "Author: " + blog.author;
 
                 const category = document.createElement("p");
                 category.textContent = "Category: " + (blog.category || "Other");
-
-                const viewButton = document.createElement("button");
-                viewButton.textContent = "View Details";
-                viewButton.addEventListener("click", function () {
-                    const id = blog._id || blog.id;
-                    window.location.href = "blog-details.html?id=" + encodeURIComponent(id);
-                });
 
                 const editButton = document.createElement("button");
                 editButton.textContent = "Edit";
@@ -70,61 +84,73 @@ document.addEventListener("DOMContentLoaded", function () {
                 deleteButton.textContent = "Delete";
                 deleteButton.className = "delete-btn";
                 deleteButton.addEventListener("click", function () {
-                    deleteBlog(blog._id || blog.id);
+                    deleteBlog(blog._id);
                 });
 
-                card.append(title, content, author, category,
-                    viewButton, editButton, deleteButton);
+                card.append(
+                    title, content, author, category,
+                    editButton, deleteButton
+                );
 
                 blogList.appendChild(card);
             });
 
         } catch (error) {
-            console.error(error);
             blogList.textContent = "Error: " + error.message;
+            if (error.message.toLowerCase().includes("token") ||
+                error.message.toLowerCase().includes("login")) {
+                sessionStorage.removeItem("blogToken");
+                sessionStorage.removeItem("blogUser");
+                window.location.href = "login.html";
+            }
         }
     }
 
     // CREATE BLOG
-    blogForm.addEventListener("submit", async function (event) {
-        event.preventDefault();
+    if (blogForm) {
+        blogForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
 
-        const blogData = {
-            title: document.getElementById("title").value.trim(),
-            author: document.getElementById("author").value.trim(),
-            content: document.getElementById("content").value.trim(),
-            category: document.getElementById("category").value
-        };
+            const blogData = {
+                title: document.getElementById("title").value.trim(),
+                author: document.getElementById("author").value.trim(),
+                content: document.getElementById("content").value.trim(),
+                category: document.getElementById("category").value
+            };
 
-        if (!blogData.title || !blogData.author ||
-            !blogData.content || !blogData.category) {
-            message.textContent = "Please fill all fields!";
-            return;
-        }
-
-        message.textContent = "Publishing blog...";
-
-        try {
-            const response = await fetch(API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(blogData)
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                throw new Error(data.message || "Blog creation failed");
+            if (!blogData.title || !blogData.author ||
+                !blogData.content || !blogData.category) {
+                message.textContent = "Please fill all fields!";
+                return;
             }
 
-            message.textContent = "Blog created successfully!";
-            blogForm.reset();
-            await loadBlogs();
+            message.textContent = "Publishing blog...";
 
-        } catch (error) {
-            message.textContent = "Error: " + error.message;
-        }
-    });
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...authHeaders
+                    },
+                    body: JSON.stringify(blogData)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || "Blog creation failed");
+                }
+
+                message.textContent = "Blog created successfully!";
+                blogForm.reset();
+                await loadBlogs();
+
+            } catch (error) {
+                message.textContent = "Error: " + error.message;
+            }
+        });
+    }
 
     // EDIT BLOG
     async function editBlog(blog) {
@@ -155,19 +181,19 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         try {
-            const response = await fetch(
-                API_URL + "/" + (blog._id || blog.id),
-                {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        title: title.trim(),
-                        author: author.trim(),
-                        content: content.trim(),
-                        category: category.trim()
-                    })
-                }
-            );
+            const response = await fetch(API_URL + "/" + blog._id, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...authHeaders
+                },
+                body: JSON.stringify({
+                    title: title.trim(),
+                    author: author.trim(),
+                    content: content.trim(),
+                    category: category.trim()
+                })
+            });
 
             const data = await response.json();
 
@@ -191,7 +217,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         try {
             const response = await fetch(API_URL + "/" + id, {
-                method: "DELETE"
+                method: "DELETE",
+                headers: authHeaders
             });
 
             const data = await response.json();
@@ -208,10 +235,17 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // SEARCH, FILTER AND REFRESH
-    searchInput.addEventListener("input", loadBlogs);
-    categoryFilter.addEventListener("change", loadBlogs);
-    refreshBtn.addEventListener("click", loadBlogs);
+    if (searchInput) {
+        searchInput.addEventListener("input", loadBlogs);
+    }
+
+    if (categoryFilter) {
+        categoryFilter.addEventListener("change", loadBlogs);
+    }
+
+    if (refreshBtn) {
+        refreshBtn.addEventListener("click", loadBlogs);
+    }
 
     loadBlogs();
 });

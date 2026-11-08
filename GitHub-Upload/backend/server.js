@@ -3,50 +3,127 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const path = require("path");
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+    throw new Error("JWT_SECRET environment variable is required");
+}
+
+// Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Frontend folder
-const frontendPath = path.join(__dirname, "../frontend");
-app.use(express.static(frontendPath));
+// Frontend
+app.use(express.static(path.join(__dirname, "../frontend")));
 
-// MongoDB Connection
-mongoose.connect("mongodb://127.0.0.1:27017/blog_application")
-    .then(() => console.log("MongoDB Connected Successfully!"))
-    .catch(err => console.log("MongoDB Error:", err));
+const categories = [
+    "Technology",
+    "Education",
+    "Health",
+    "Lifestyle",
+    "Travel",
+    "Other"
+];
 
 // User Schema
 const userSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true }
+    name: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
+    },
+    password: {
+        type: String,
+        required: true
+    }
 }, { timestamps: true });
 
 const User = mongoose.model("User", userSchema);
 
 // Blog Schema
 const blogSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    author: { type: String, required: true },
-    content: { type: String, required: true }
+    title: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    author: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    category: {
+        type: String,
+        enum: categories,
+        default: "Other"
+    },
+    content: {
+        type: String,
+        required: true
+    },
+    userId: {
+        type: String,
+        required: true
+    }
 }, { timestamps: true });
 
 const Blog = mongoose.model("Blog", blogSchema);
 
-// Home Page
-app.get("/", (req, res) => {
-    res.sendFile(path.join(frontendPath, "index.html"));
-});
+// JWT Token
+function createToken(user) {
+    return jwt.sign(
+        {
+            id: user._id.toString(),
+            email: user.email
+        },
+        JWT_SECRET,
+        { expiresIn: "1d" }
+    );
+}
+
+// Authentication Middleware
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({
+            success: false,
+            message: "Access token required"
+        });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    try {
+        req.user = jwt.verify(token, JWT_SECRET);
+        next();
+    } catch (error) {
+        return res.status(403).json({
+            success: false,
+            message: "Invalid or expired token"
+        });
+    }
+}
 
 // Health Check
 app.get("/api/health", (req, res) => {
     res.json({
         success: true,
-        message: "Backend is working!"
+        message: "Backend server is working!"
     });
 });
 
@@ -58,14 +135,14 @@ app.post("/api/register", async (req, res) => {
         if (!name || !email || !password) {
             return res.status(400).json({
                 success: false,
-                message: "All fields are required!"
+                message: "All fields are required"
             });
         }
 
         if (password.length < 8) {
             return res.status(400).json({
                 success: false,
-                message: "Password must contain at least 8 characters!"
+                message: "Password must contain at least 8 characters"
             });
         }
 
@@ -78,7 +155,7 @@ app.post("/api/register", async (req, res) => {
         if (existingUser) {
             return res.status(409).json({
                 success: false,
-                message: "Email already registered!"
+                message: "Email already registered"
             });
         }
 
@@ -90,21 +167,22 @@ app.post("/api/register", async (req, res) => {
             password: hashedPassword
         });
 
+        const token = createToken(user);
+
         res.status(201).json({
             success: true,
             message: "Registration successful!",
+            token,
             user: {
                 id: user._id,
                 name: user.name,
                 email: user.email
             }
         });
-
     } catch (error) {
-        console.log(error);
         res.status(500).json({
             success: false,
-            message: "Registration failed!"
+            message: "Registration failed"
         });
     }
 });
@@ -117,7 +195,7 @@ app.post("/api/login", async (req, res) => {
         if (!email || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Email and password are required!"
+                message: "Email and password are required"
             });
         }
 
@@ -128,57 +206,91 @@ app.post("/api/login", async (req, res) => {
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid email or password!"
+                message: "Invalid email or password"
             });
         }
 
-        const passwordMatch = await bcrypt.compare(
+        const isMatch = await bcrypt.compare(
             password,
             user.password
         );
 
-        if (!passwordMatch) {
+        if (!isMatch) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid email or password!"
+                message: "Invalid email or password"
             });
         }
+
+        const token = createToken(user);
 
         res.json({
             success: true,
             message: "Login successful!",
+            token,
             user: {
                 id: user._id,
                 name: user.name,
                 email: user.email
             }
         });
-
     } catch (error) {
-        console.log(error);
         res.status(500).json({
             success: false,
-            message: "Login failed!"
+            message: "Login failed"
+        });
+    }
+});
+
+// GET PROFILE
+app.get("/api/profile", authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id)
+            .select("-password");
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        res.json({ success: true, user });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Could not fetch profile"
         });
     }
 });
 
 // CREATE BLOG
-app.post("/api/blogs", async (req, res) => {
+app.post("/api/blogs", authenticateToken, async (req, res) => {
     try {
-        const { title, author, content } = req.body;
+        const { title, author, content, category } = req.body;
 
         if (!title || !author || !content) {
             return res.status(400).json({
                 success: false,
-                message: "All fields are required!"
+                message: "Title, author and content are required"
+            });
+        }
+
+        const selectedCategory = category || "Other";
+
+        if (!categories.includes(selectedCategory)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid category"
             });
         }
 
         const blog = await Blog.create({
-            title,
-            author,
-            content
+            title: title.trim(),
+            author: author.trim(),
+            content,
+            category: selectedCategory,
+            userId: req.user.id
         });
 
         res.status(201).json({
@@ -186,72 +298,197 @@ app.post("/api/blogs", async (req, res) => {
             message: "Blog created successfully!",
             blog
         });
-
     } catch (error) {
-        console.log(error);
         res.status(500).json({
             success: false,
-            message: "Blog creation failed!"
+            message: "Error creating blog"
         });
     }
 });
 
-// READ BLOGS
+// READ ALL BLOGS + SEARCH + CATEGORY FILTER
 app.get("/api/blogs", async (req, res) => {
     try {
-        const blogs = await Blog.find().sort({ createdAt: -1 });
+        const { search, category } = req.query;
+        const filter = {};
+
+        if (search && search.trim()) {
+            const safeSearch = search.trim().replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+            );
+
+            filter.$or = [
+                { title: { $regex: safeSearch, $options: "i" } },
+                { author: { $regex: safeSearch, $options: "i" } }
+            ];
+        }
+
+        if (category) {
+            if (!categories.includes(category)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid category"
+                });
+            }
+
+            filter.category = category;
+        }
+
+        const blogs = await Blog.find(filter)
+            .sort({ createdAt: -1 });
 
         res.json({
             success: true,
             message: "Blogs fetched successfully!",
             blogs
         });
-
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: "Unable to fetch blogs!"
+            message: "Error fetching blogs"
         });
     }
 });
 
-// READ SINGLE BLOG
+// GET ONLY LOGGED-IN USER'S BLOGS
+app.get("/api/my-blogs", authenticateToken, async (req, res) => {
+    try {
+        const { search, category } = req.query;
+        const filter = {
+            userId: req.user.id
+        };
+
+        if (search && search.trim()) {
+            const safeSearch = search.trim().replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+            );
+
+            filter.$or = [
+                { title: { $regex: safeSearch, $options: "i" } },
+                { author: { $regex: safeSearch, $options: "i" } }
+            ];
+        }
+
+        if (category) {
+            if (!categories.includes(category)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid category"
+                });
+            }
+            filter.category = category;
+        }
+
+        const blogs = await Blog.find(filter)
+            .sort({ createdAt: -1 });
+
+        res.json({
+            success: true,
+            message: "Your blogs fetched successfully!",
+            blogs
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Could not fetch your blogs"
+        });
+    }
+});
+
+// GET SINGLE BLOG
 app.get("/api/blogs/:id", async (req, res) => {
     try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid blog ID"
+            });
+        }
+
         const blog = await Blog.findById(req.params.id);
 
         if (!blog) {
             return res.status(404).json({
                 success: false,
-                message: "Blog not found!"
+                message: "Blog not found"
             });
         }
 
-        res.json({ success: true, blog });
-
+        res.json({
+            success: true,
+            message: "Blog fetched successfully!",
+            blog
+        });
     } catch (error) {
-        res.status(400).json({
+        res.status(500).json({
             success: false,
-            message: "Invalid blog ID!"
+            message: "Error fetching blog"
         });
     }
 });
 
-// UPDATE BLOG
-app.put("/api/blogs/:id", async (req, res) => {
+// UPDATE OWN BLOG ONLY
+app.put("/api/blogs/:id", authenticateToken, async (req, res) => {
     try {
-        const { title, author, content } = req.body;
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid blog ID"
+            });
+        }
 
-        const blog = await Blog.findByIdAndUpdate(
-            req.params.id,
-            { title, author, content },
+        const { title, author, content, category } = req.body;
+        const updates = {};
+
+        if (title !== undefined) {
+            if (typeof title !== "string" || !title.trim()) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid title"
+                });
+            }
+            updates.title = title.trim();
+        }
+
+        if (author !== undefined) {
+            if (typeof author !== "string" || !author.trim()) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid author"
+                });
+            }
+            updates.author = author.trim();
+        }
+
+        if (content !== undefined) {
+            updates.content = content;
+        }
+
+        if (category !== undefined) {
+            if (!categories.includes(category)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid category"
+                });
+            }
+            updates.category = category;
+        }
+
+        const blog = await Blog.findOneAndUpdate(
+            {
+                _id: req.params.id,
+                userId: req.user.id
+            },
+            updates,
             { new: true, runValidators: true }
         );
 
         if (!blog) {
             return res.status(404).json({
                 success: false,
-                message: "Blog not found!"
+                message: "Blog not found or you do not own this blog"
             });
         }
 
@@ -260,24 +497,33 @@ app.put("/api/blogs/:id", async (req, res) => {
             message: "Blog updated successfully!",
             blog
         });
-
     } catch (error) {
-        res.status(400).json({
+        res.status(500).json({
             success: false,
-            message: "Blog update failed!"
+            message: "Error updating blog"
         });
     }
 });
 
-// DELETE BLOG
-app.delete("/api/blogs/:id", async (req, res) => {
+// DELETE OWN BLOG ONLY
+app.delete("/api/blogs/:id", authenticateToken, async (req, res) => {
     try {
-        const blog = await Blog.findByIdAndDelete(req.params.id);
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid blog ID"
+            });
+        }
+
+        const blog = await Blog.findOneAndDelete({
+            _id: req.params.id,
+            userId: req.user.id
+        });
 
         if (!blog) {
             return res.status(404).json({
                 success: false,
-                message: "Blog not found!"
+                message: "Blog not found or you do not own this blog"
             });
         }
 
@@ -285,20 +531,33 @@ app.delete("/api/blogs/:id", async (req, res) => {
             success: true,
             message: "Blog deleted successfully!"
         });
-
     } catch (error) {
-        res.status(400).json({
+        res.status(500).json({
             success: false,
-            message: "Blog deletion failed!"
+            message: "Error deleting blog"
         });
     }
 });
 
-// START SERVER
-const PORT = 5000;
+// FRONTEND ROUTE
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend/index.html"));
+});
 
-app.listen(PORT, () => {
-    console.log("BLOG APPLICATION SERVER");
-    console.log("Server: http://localhost:" + PORT);
-    console.log("Frontend: " + frontendPath);
+// DATABASE CONNECTION
+mongoose.connect(
+    process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/blog_application"
+)
+.then(() => {
+    console.log("MongoDB Connected Successfully!");
+
+    app.listen(PORT, () => {
+        console.log("BLOG APPLICATION SERVER");
+        console.log(`Server: http://127.0.0.1:${PORT}`);
+        console.log("Frontend: http://127.0.0.1:5000/index.html");
+    });
+})
+.catch((error) => {
+    console.error("MongoDB connection failed:", error.message);
+    process.exit(1);
 });
