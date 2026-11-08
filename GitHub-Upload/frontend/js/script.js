@@ -1,4 +1,4 @@
-﻿
+
 const API_URL = "/api/blogs";
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -39,6 +39,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 const author = document.createElement("p");
                 author.textContent = "Author: " + blog.author;
 
+                // VIEW DETAILS BUTTON
+                const viewButton = document.createElement("button");
+                viewButton.textContent = "View Details";
+                viewButton.className = "view-btn";
+
+                viewButton.addEventListener("click", function () {
+                    const blogId = blog._id || blog.id;
+
+                    window.location.href =
+                        "blog-details.html?id=" +
+                        encodeURIComponent(blogId);
+                });
+
                 // EDIT BUTTON
                 const editButton = document.createElement("button");
                 editButton.textContent = "Edit";
@@ -60,6 +73,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 card.appendChild(title);
                 card.appendChild(content);
                 card.appendChild(author);
+                card.appendChild(viewButton);
                 card.appendChild(editButton);
                 card.appendChild(deleteButton);
 
