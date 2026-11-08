@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Details - My Blog Application</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        .details-container {
+            max-width: 850px;
+            margin: 40px auto;
+            padding: 25px;
+        }
+
+        .details-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+        }
+
+        .details-card h1 {
+            margin-bottom: 20px;
+        }
+
+        .details-content {
+            line-height: 1.8;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 18px;
+            background: #333;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+
+        #detailsMessage {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="details-container">
+
+        <a href="index.html" class="back-button">
+            ← Back to Home
+        </a>
+
+        <div class="details-card">
+
+            <h1 id="blogTitle">Loading blog...</h1>
+
+            <p id="blogAuthor"></p>
+
+            <p id="blogDate"></p>
+
+            <hr>
+
+            <div id="blogContent" class="details-content"></div>
+
+            <p id="detailsMessage"></p>
+
+        </div>
+
+    </div>
+
+    <script>
+        const API_URL = "/api/blogs";
+
+        document.addEventListener("DOMContentLoaded", async function () {
+
+            const blogTitle = document.getElementById("blogTitle");
+            const blogAuthor = document.getElementById("blogAuthor");
+            const blogDate = document.getElementById("blogDate");
+            const blogContent = document.getElementById("blogContent");
+            const detailsMessage = document.getElementById("detailsMessage");
+
+            const params = new URLSearchParams(window.location.search);
+            const blogId = params.get("id");
+
+            if (!blogId) {
+                blogTitle.textContent = "Blog not found";
+                detailsMessage.textContent = "No blog ID provided.";
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    API_URL + "/" + encodeURIComponent(blogId)
+                );
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || "Unable to load blog");
+                }
+
+                const blog = data.blog;
+
+                if (!blog) {
+                    throw new Error("Blog not found.");
+                }
+
+                blogTitle.textContent = blog.title || "Untitled";
+                blogAuthor.textContent = "Author: " + (blog.author || "Anonymous");
+                blogContent.textContent = blog.content || "";
+
+                if (blog.createdAt) {
+                    blogDate.textContent =
+                        "Published: " + new Date(blog.createdAt).toLocaleString();
+                } else {
+                    blogDate.textContent = "";
+                }
+
+            } catch (error) {
+                blogTitle.textContent = "Unable to load blog";
+                detailsMessage.textContent = error.message;
+                console.error("Blog details error:", error);
+            }
+
+        });
+    </script>
+
+</body>
+</html>
