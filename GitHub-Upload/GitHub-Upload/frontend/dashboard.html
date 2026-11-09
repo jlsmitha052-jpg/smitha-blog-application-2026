@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Dashboard</title>
+<style>
+body { font-family: Arial; background: #f4f6f9; padding: 20px; }
+.dashboard { max-width: 850px; margin: auto; background: white; padding: 25px; border-radius: 12px; }
+.blog-card, .stats { background: #eef3ff; padding: 15px; margin: 15px 0; border-radius: 8px; }
+button, a { padding: 10px; margin: 5px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="dashboard">
+<h1>My Dashboard</h1>
+<h2 id="welcome">Loading profile...</h2>
+<p>Manage your blog application here.</p>
+
+<div class="stats">
+<h3>My Blog Activity</h3>
+<p>Total Blogs: <strong id="blogCount">Loading...</strong></p>
+</div>
+
+<a href="index.html">Home</a>
+<a href="index.html">Create Blog</a>
+<button id="refreshBtn">Refresh Blogs</button>
+<button id="logoutBtn">Logout</button>
+
+<h2>My Blogs</h2>
+<div id="blogList">Loading blogs...</div>
+<p id="message"></p>
+</div>
+
+<script>
+const token = sessionStorage.getItem("blogToken");
+
+const welcome = document.getElementById("welcome");
+const blogList = document.getElementById("blogList");
+const blogCount = document.getElementById("blogCount");
+const message = document.getElementById("message");
+
+if (!token) {
+    window.location.replace("login.html");
+} else {
+    const headers = {
+        "Authorization": "Bearer " + token
+    };
+
+    async function loadDashboard() {
+        blogList.textContent = "Loading your blogs...";
+        message.textContent = "";
+
+        try {
+            const profileResponse = await fetch("/api/profile", {
+                headers: headers
+            });
+
+            const profileData = await profileResponse.json();
+
+            if (!profileResponse.ok || !profileData.success) {
+                throw new Error("Please login again.");
+            }
+
+            welcome.textContent =
+                "Welcome, " + profileData.user.name + "!";
+
+            const response = await fetch("/api/my-blogs", {
+                headers: headers
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || "Unable to load blogs.");
+            }
+
+            const blogs = data.blogs || [];
+
+            blogCount.textContent = blogs.length;
+            blogList.innerHTML = "";
+
+            if (blogs.length === 0) {
+                blogList.textContent = "You have not created any blogs yet.";
+                return;
+            }
+
+            blogs.forEach(function(blog) {
+                const card = document.createElement("div");
+                card.className = "blog-card";
+
+                const title = document.createElement("h3");
+                title.textContent = blog.title;
+
+                const content = document.createElement("p");
+                content.textContent = blog.content || "";
+
+                const author = document.createElement("p");
+                author.textContent = "Author: " + blog.author;
+
+                card.append(title, content, author);
+                blogList.appendChild(card);
+            });
+
+            message.textContent = "Your blogs loaded successfully.";
+
+        } catch (error) {
+            blogCount.textContent = "0";
+            blogList.textContent = error.message;
+            message.textContent = error.message;
+
+            sessionStorage.removeItem("blogToken");
+            sessionStorage.removeItem("blogUser");
+            window.location.replace("login.html");
+        }
+    }
+
+    document.getElementById("refreshBtn")
+        .addEventListener("click", loadDashboard);
+
+    document.getElementById("logoutBtn")
+        .addEventListener("click", function() {
+            sessionStorage.removeItem("blogToken");
+            sessionStorage.removeItem("blogUser");
+            window.location.replace("login.html");
+        });
+
+    loadDashboard();
+}
+</script>
+</body>
+</html>

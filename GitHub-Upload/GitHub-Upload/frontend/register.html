@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - My Blog Application</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <h1>Create Account</h1>
+        <p>Register to My Blog Application</p>
+
+        <form id="registerForm">
+            <input type="text" id="name" placeholder="Full Name" required>
+            <input type="email" id="email" placeholder="Email Address" required>
+            <input type="password" id="password"
+                   placeholder="Password (minimum 8 characters)"
+                   minlength="8" required>
+            <button type="submit">Register</button>
+        </form>
+
+        <p id="message"></p>
+        <a href="login.html">Already have an account? Login</a>
+        <br>
+        <a href="index.html">Back to Home</a>
+    </div>
+
+    <script>
+        const registerForm = document.getElementById("registerForm");
+        const message = document.getElementById("message");
+
+        registerForm.addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const userData = {
+                name: document.getElementById("name").value.trim(),
+                email: document.getElementById("email").value.trim(),
+                password: document.getElementById("password").value
+            };
+
+            message.textContent = "Registering...";
+
+            try {
+                const response = await fetch("/api/register", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || "Registration failed");
+                }
+
+                if (!data.token || !data.user) {
+                    throw new Error("Registration successful, but token or user data is missing. Please login.");
+                }
+
+                sessionStorage.setItem("blogToken", data.token);
+                sessionStorage.setItem("blogUser", JSON.stringify(data.user));
+
+                message.style.color = "green";
+                message.textContent = "Registration successful! Redirecting...";
+
+                window.location.href = "dashboard.html";
+
+            } catch(error) {
+                message.style.color = "red";
+                message.textContent = error.message;
+            }
+        });
+    </script>
+</body>
+</html>

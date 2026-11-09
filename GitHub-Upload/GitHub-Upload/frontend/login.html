@@ -1,0 +1,119 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - My Blog Application</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            padding: 20px;
+        }
+        .auth-container {
+            max-width: 420px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px #ccc;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        #message {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="auth-container">
+    <h1>Welcome Back!</h1>
+    <p>Login to My Blog Application</p>
+
+    <form id="loginForm">
+        <input type="email" id="email"
+               placeholder="Email Address" required>
+
+        <input type="password" id="password"
+               placeholder="Password" required>
+
+        <button type="submit" id="loginButton">Login</button>
+    </form>
+
+    <p id="message"></p>
+
+    <a href="register.html">Don't have an account? Register</a>
+    <br><br>
+    <a href="index.html">Back to Home</a>
+</div>
+
+<script>
+const loginForm = document.getElementById("loginForm");
+const message = document.getElementById("message");
+const loginButton = document.getElementById("loginButton");
+
+loginForm.addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    message.textContent = "Logging in...";
+    message.style.color = "blue";
+    loginButton.disabled = true;
+
+    try {
+        const response = await fetch("/api/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Login failed!");
+        }
+
+        if (!data.token || !data.user) {
+            throw new Error("Login response is missing token or user details.");
+        }
+
+        // Save JWT token and user details
+        sessionStorage.setItem("blogToken", data.token);
+        sessionStorage.setItem("blogUser", JSON.stringify(data.user));
+
+        message.textContent = "Login successful! Redirecting...";
+        message.style.color = "green";
+
+        window.location.href = "dashboard.html";
+
+    } catch (error) {
+        message.textContent = error.message;
+        message.style.color = "red";
+        loginButton.disabled = false;
+    }
+});
+</script>
+
+</body>
+</html>
